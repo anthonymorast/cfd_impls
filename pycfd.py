@@ -83,10 +83,10 @@ if __name__ == '__main__':
     ymax = 2.0
     epsilon = 0.00001
 
-    nx = 51
+    nx = 101
     ny = 51
     nt = 10
-    nit = 100
+    nit = 5000
 
     dx = xmax/(nx-1)
     dy = ymax/(ny-1)
@@ -94,7 +94,6 @@ if __name__ == '__main__':
     y = np.linspace(ymin,ymax,ny)
     Y,X = np.meshgrid(y,x)
 
-    print(ny, dy)
     # physical variables -- Re = (rho*D*F)/nu
     rho = 1     # fluid density
     nu = .1     # fluid viscosity
@@ -136,102 +135,104 @@ if __name__ == '__main__':
 #    print(b)
 #    exit()
 
-    udiff = 1
-    stepcount = 0
+    for _ in range(0, 100):
+        udiff = 1
+        stepcount = 0
 
-    while udiff > epsilon:
-        un = u.copy()
-        vn = v.copy()
+        while udiff > epsilon:
+            un = u.copy()
+            vn = v.copy()
 
-        b = build_up_b(rho, dt, dx, dy, u, v)
-        p = pressure_poisson_periodic(p, dx, dy, objPts)
+            b = build_up_b(rho, dt, dx, dy, u, v)
+            p = pressure_poisson_periodic(p, dx, dy, objPts)
 
-        u[1:-1, 1:-1] = (un[1:-1, 1:-1] -
-                        un[1:-1, 1:-1] * dt / dx *
-                        (un[1:-1, 1:-1] - un[1:-1, 0:-2]) -
-                        vn[1:-1, 1:-1] * dt / dy *
-                        (un[1:-1, 1:-1] - un[0:-2, 1:-1]) -
+            u[1:-1, 1:-1] = (un[1:-1, 1:-1] -
+                            un[1:-1, 1:-1] * dt / dx *
+                            (un[1:-1, 1:-1] - un[1:-1, 0:-2]) -
+                            vn[1:-1, 1:-1] * dt / dy *
+                            (un[1:-1, 1:-1] - un[0:-2, 1:-1]) -
+                            dt / (2 * rho * dx) *
+                            (p[1:-1, 2:] - p[1:-1, 0:-2]) +
+                            nu * (dt / dx**2 *
+                            (un[1:-1, 2:] - 2 * un[1:-1, 1:-1] + un[1:-1, 0:-2]) +
+                            dt / dy**2 *
+                            (un[2:, 1:-1] - 2 * un[1:-1, 1:-1] + un[0:-2, 1:-1])) +
+                            F * dt)
+
+            v[1:-1, 1:-1] = (vn[1:-1, 1:-1] -
+                            un[1:-1, 1:-1] * dt / dx *
+                            (vn[1:-1, 1:-1] - vn[1:-1, 0:-2]) -
+                            vn[1:-1, 1:-1] * dt / dy *
+                            (vn[1:-1, 1:-1] - vn[0:-2, 1:-1]) -
+                            dt / (2 * rho * dy) *
+                            (p[2:, 1:-1] - p[0:-2, 1:-1]) +
+                            nu * (dt / dx**2 *
+                            (vn[1:-1, 2:] - 2 * vn[1:-1, 1:-1] + vn[1:-1, 0:-2]) +
+                            dt / dy**2 *
+                            (vn[2:, 1:-1] - 2 * vn[1:-1, 1:-1] + vn[0:-2, 1:-1])))
+
+            # Periodic BC u @ x = 2
+            u[1:-1, -1] = (un[1:-1, -1] - un[1:-1, -1] * dt / dx *
+                        (un[1:-1, -1] - un[1:-1, -2]) -
+                        vn[1:-1, -1] * dt / dy *
+                        (un[1:-1, -1] - un[0:-2, -1]) -
                         dt / (2 * rho * dx) *
-                        (p[1:-1, 2:] - p[1:-1, 0:-2]) +
+                        (p[1:-1, 0] - p[1:-1, -2]) +
                         nu * (dt / dx**2 *
-                        (un[1:-1, 2:] - 2 * un[1:-1, 1:-1] + un[1:-1, 0:-2]) +
+                        (un[1:-1, 0] - 2 * un[1:-1,-1] + un[1:-1, -2]) +
                         dt / dy**2 *
-                        (un[2:, 1:-1] - 2 * un[1:-1, 1:-1] + un[0:-2, 1:-1])) +
-                        F * dt)
+                        (un[2:, -1] - 2 * un[1:-1, -1] + un[0:-2, -1])) + F * dt)
 
-        v[1:-1, 1:-1] = (vn[1:-1, 1:-1] -
-                        un[1:-1, 1:-1] * dt / dx *
-                        (vn[1:-1, 1:-1] - vn[1:-1, 0:-2]) -
-                        vn[1:-1, 1:-1] * dt / dy *
-                        (vn[1:-1, 1:-1] - vn[0:-2, 1:-1]) -
+            # Periodic BC u @ x = 0
+            u[1:-1, 0] = (un[1:-1, 0] - un[1:-1, 0] * dt / dx *
+                        (un[1:-1, 0] - un[1:-1, -1]) -
+                        vn[1:-1, 0] * dt / dy *
+                        (un[1:-1, 0] - un[0:-2, 0]) -
+                        dt / (2 * rho * dx) *
+                        (p[1:-1, 1] - p[1:-1, -1]) +
+                        nu * (dt / dx**2 *
+                        (un[1:-1, 1] - 2 * un[1:-1, 0] + un[1:-1, -1]) +
+                        dt / dy**2 *
+                        (un[2:, 0] - 2 * un[1:-1, 0] + un[0:-2, 0])) + F * dt)
+
+            # Periodic BC v @ x = 2
+            v[1:-1, -1] = (vn[1:-1, -1] - un[1:-1, -1] * dt / dx *
+                        (vn[1:-1, -1] - vn[1:-1, -2]) -
+                        vn[1:-1, -1] * dt / dy *
+                        (vn[1:-1, -1] - vn[0:-2, -1]) -
                         dt / (2 * rho * dy) *
-                        (p[2:, 1:-1] - p[0:-2, 1:-1]) +
+                        (p[2:, -1] - p[0:-2, -1]) +
                         nu * (dt / dx**2 *
-                        (vn[1:-1, 2:] - 2 * vn[1:-1, 1:-1] + vn[1:-1, 0:-2]) +
+                        (vn[1:-1, 0] - 2 * vn[1:-1, -1] + vn[1:-1, -2]) +
                         dt / dy**2 *
-                        (vn[2:, 1:-1] - 2 * vn[1:-1, 1:-1] + vn[0:-2, 1:-1])))
+                        (vn[2:, -1] - 2 * vn[1:-1, -1] + vn[0:-2, -1])))
 
-        # Periodic BC u @ x = 2
-        u[1:-1, -1] = (un[1:-1, -1] - un[1:-1, -1] * dt / dx *
-                    (un[1:-1, -1] - un[1:-1, -2]) -
-                    vn[1:-1, -1] * dt / dy *
-                    (un[1:-1, -1] - un[0:-2, -1]) -
-                    dt / (2 * rho * dx) *
-                    (p[1:-1, 0] - p[1:-1, -2]) +
-                    nu * (dt / dx**2 *
-                    (un[1:-1, 0] - 2 * un[1:-1,-1] + un[1:-1, -2]) +
-                    dt / dy**2 *
-                    (un[2:, -1] - 2 * un[1:-1, -1] + un[0:-2, -1])) + F * dt)
-
-        # Periodic BC u @ x = 0
-        u[1:-1, 0] = (un[1:-1, 0] - un[1:-1, 0] * dt / dx *
-                    (un[1:-1, 0] - un[1:-1, -1]) -
-                    vn[1:-1, 0] * dt / dy *
-                    (un[1:-1, 0] - un[0:-2, 0]) -
-                    dt / (2 * rho * dx) *
-                    (p[1:-1, 1] - p[1:-1, -1]) +
-                    nu * (dt / dx**2 *
-                    (un[1:-1, 1] - 2 * un[1:-1, 0] + un[1:-1, -1]) +
-                    dt / dy**2 *
-                    (un[2:, 0] - 2 * un[1:-1, 0] + un[0:-2, 0])) + F * dt)
-
-        # Periodic BC v @ x = 2
-        v[1:-1, -1] = (vn[1:-1, -1] - un[1:-1, -1] * dt / dx *
-                    (vn[1:-1, -1] - vn[1:-1, -2]) -
-                    vn[1:-1, -1] * dt / dy *
-                    (vn[1:-1, -1] - vn[0:-2, -1]) -
-                    dt / (2 * rho * dy) *
-                    (p[2:, -1] - p[0:-2, -1]) +
-                    nu * (dt / dx**2 *
-                    (vn[1:-1, 0] - 2 * vn[1:-1, -1] + vn[1:-1, -2]) +
-                    dt / dy**2 *
-                    (vn[2:, -1] - 2 * vn[1:-1, -1] + vn[0:-2, -1])))
-
-        # Periodic BC v @ x = 0
-        v[1:-1, 0] = (vn[1:-1, 0] - un[1:-1, 0] * dt / dx *
-                    (vn[1:-1, 0] - vn[1:-1, -1]) -
-                    vn[1:-1, 0] * dt / dy *
-                    (vn[1:-1, 0] - vn[0:-2, 0]) -
-                    dt / (2 * rho * dy) *
-                    (p[2:, 0] - p[0:-2, 0]) +
-                    nu * (dt / dx**2 *
-                    (vn[1:-1, 1] - 2 * vn[1:-1, 0] + vn[1:-1, -1]) +
-                    dt / dy**2 *
-                    (vn[2:, 0] - 2 * vn[1:-1, 0] + vn[0:-2, 0])))
+            # Periodic BC v @ x = 0
+            v[1:-1, 0] = (vn[1:-1, 0] - un[1:-1, 0] * dt / dx *
+                        (vn[1:-1, 0] - vn[1:-1, -1]) -
+                        vn[1:-1, 0] * dt / dy *
+                        (vn[1:-1, 0] - vn[0:-2, 0]) -
+                        dt / (2 * rho * dy) *
+                        (p[2:, 0] - p[0:-2, 0]) +
+                        nu * (dt / dx**2 *
+                        (vn[1:-1, 1] - 2 * vn[1:-1, 0] + vn[1:-1, -1]) +
+                        dt / dy**2 *
+                        (vn[2:, 0] - 2 * vn[1:-1, 0] + vn[0:-2, 0])))
 
 
-        # Wall BC: u,v = 0 @ y = 0,2
-        u[0, :] = 0
-        u[-1, :] = 0
-        v[0, :] = 0
-        v[-1, :] = 0
-        #print(u)
-        set_obj_bounds(u,v,objPts)
+            # Wall BC: u,v = 0 @ y = 0,2
+            u[0, :] = 0
+            u[-1, :] = 0
+            v[0, :] = 0
+            v[-1, :] = 0
+            #print(u)
+            set_obj_bounds(u,v,objPts)
 
 
-        udiff = (np.sum(u) - np.sum(un)) / np.sum(u)
-        stepcount += 1
+            udiff = (np.sum(u) - np.sum(un)) / np.sum(u)
+            stepcount += 1
 
     print(stepcount)
-    plt.quiver(X[::3], Y[::3], u[::3], v[::3])
+    # plt.quiver(X[::3], Y[::3], u[::3], v[::3])
+    plt.imshow(u, cmap='hot', interpolation='nearest')
     plt.show()
