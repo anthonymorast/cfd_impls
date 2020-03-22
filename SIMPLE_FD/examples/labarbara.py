@@ -2,10 +2,9 @@ import numpy
 from matplotlib import pyplot, cm
 from mpl_toolkits.mplot3d import Axes3D
 
-nx = 501
-ny = 501
-nit = 5000
-c = 1
+nx = 51
+ny = 51
+nit = 50
 dx = 2 / (nx - 1)
 dy = 2 / (ny - 1)
 x = numpy.linspace(0, 2, nx)
@@ -59,10 +58,7 @@ def cavity_flow(nt, u, v, dt, dx, dy, p, rho, nu):
     b = numpy.zeros((ny, nx))
 
     for n in range(nt):
-        print(n, 'out of', nt)
-        print(numpy.isnan(p).any())
-        print(numpy.isnan(v).any())
-        print(numpy.isnan(u).any())
+        print(n)
         un = u.copy()
         vn = v.copy()
 
@@ -100,14 +96,13 @@ def cavity_flow(nt, u, v, dt, dx, dy, p, rho, nu):
         v[:, 0]  = 0
         v[:, -1] = 0
 
-    print(u[-2, :])
     return u, v, p
 
 u = numpy.zeros((ny, nx))
 v = numpy.zeros((ny, nx))
 p = numpy.zeros((ny, nx))
 b = numpy.zeros((ny, nx))
-nt = 10000
+nt = 500
 u, v, p = cavity_flow(nt, u, v, dt, dx, dy, p, rho, nu)
 
 print(u)

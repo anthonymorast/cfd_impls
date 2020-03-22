@@ -77,7 +77,7 @@ void iterate(parameters &p, flow_data &d)
     int total_iterations_pp = 0;
     int image_save_iter = int(0.25/p.dt);   // every .25 seconds = every image_save_iter iterations
     clock_t start, end;
-	double timeTaken = 0;
+	  double timeTaken = 0;
 
     for(int t = 0; t < p.nt; t++)
     {
@@ -101,7 +101,7 @@ void iterate(parameters &p, flow_data &d)
         solve_momentum(p, d);
         end = clock();
         timeTaken = double(end-start) / double(CLOCKS_PER_SEC);
-        cout << "\tSolve Momentum Equations: " << timeTaken << " sec" << endl;
+         cout << "\tSolve Momentum Equations: " << timeTaken << " sec" << endl;
 
         start = clock();
         apply_boundaries(p, d);
@@ -130,7 +130,6 @@ void iterate(parameters &p, flow_data &d)
     }
 
     cout << "Average PP Iterations: " << ((double)total_iterations_pp)/((double)p.nt) << endl;
-
 }
 
 void create_image(bitmap_image img, double** data, string filename)
@@ -262,27 +261,26 @@ int converge_pressure(parameters &p, flow_data &d)
     // setting the pressure field to 1 before convergence took avg iters from
     // 218.685 to 4635.92
 
-    double average = 0;
-    for(int i = 0; i < p.ny; i++)
-    {
-        for(int j = 0; j < p.nx; j++)
-        {
-            average += d.p[i][j];
-        }
-    }
-    average /= (p.ny * p.nx);
-
-    // add the average pressure to the pressure field
-    // adding (average * .0001) to the pressure field takes the average Iterations
-    // up to 386.639
-    for(int i = 0; i < p.ny; i++)
-    {
-        for(int j = 0; j < p.nx; j++)
-        {
-            // d.p[i][j] += (average*.000001);
-        }
-    }
-
+    // double average = 0;
+    // for(int i = 0; i < p.ny; i++)
+    // {
+    //     for(int j = 0; j < p.nx; j++)
+    //     {
+    //         average += d.p[i][j];
+    //     }
+    // }
+    // average /= (p.ny * p.nx);
+    //
+    // // add the average pressure to the pressure field
+    // // adding (average * .0001) to the pressure field takes the average Iterations
+    // // up to 386.639
+    // for(int i = 0; i < p.ny; i++)
+    // {
+    //     for(int j = 0; j < p.nx; j++)
+    //     {
+    //         // d.p[i][j] += (average*.000001);
+    //     }
+    // }
     do
     {
         max_change = 0;
@@ -300,7 +298,10 @@ int converge_pressure(parameters &p, flow_data &d)
             }
         }
         iter++;
-    } while(max_change > p.pp_epsilon && iter < p.max_iter_pp);
+
+        // need to apply pressure boundaries, others shouldn't matter
+        apply_boundaries(p, d);
+    } while(iter < p.max_iter_pp && max_change > p.pp_epsilon);
 
     return iter;
 }
@@ -330,14 +331,14 @@ parameters create_params()
 {
     parameters p;
 
-    p.nx = 101;
-    p.ny = 101;
+    p.nx = 501;
+    p.ny = 501;
     p.nt = 50000;
-    p.dt = 0.0001;
-    p.max_iter_pp = 5000;
-    p.pp_epsilon = 0.00000001;
-    p.x_max = 1;
-    p.y_max = 1;
+    p.dt = .00001;
+    p.max_iter_pp = 500;
+    p.pp_epsilon = 0; //.00000001;
+    p.x_max = 2;
+    p.y_max = 2;
     p.density = 1.0;
     p.viscosity = 0.1;
     p.top = top;
